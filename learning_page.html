@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Learning Platform</title>   
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.7.1/gsap.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+        .blob {
+            animation: blob 7s infinite;
+        }
+        @keyframes blob {
+            0% { border-radius: 60% 40% 30% 70%/60% 30% 70% 40%; }
+            50% { border-radius: 30% 60% 70% 40%/50% 60% 30% 60%; }
+            100% { border-radius: 60% 40% 30% 70%/60% 30% 70% 40%; }
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Decorative background elements -->
+    <div class="fixed inset-0 -z-10 overflow-hidden">
+        <div class="blob absolute top-20 left-20 w-72 h-72 bg-purple-200 opacity-20 transform rotate-45"></div>
+        <div class="blob absolute bottom-20 right-20 w-96 h-96 bg-indigo-200 opacity-20 transform -rotate-12"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl font-bold gradient-text">LearnFlow</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-gray-700">Welcome back,</span>
+                        <div class="relative">
+                            <img class="h-10 w-10 rounded-full border-2 border-indigo-500 p-0.5" src="/api/placeholder/40/40" alt="User avatar">
+                            <div class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-400 border-2 border-white"></div>
+                        </div>
+                        <span class="font-medium text-gray-900">John Doe</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-4xl mx-auto px-4 py-8">
+        <!-- Topic Question Section -->
+        <div id="topic-question" class="transform transition-all duration-500">
+            <div class="text-center mb-12">
+                <h1 class="text-4xl font-bold mb-4 gradient-text">Ready to embark on a learning adventure?</h1>
+                <p class="text-gray-600 text-lg">Every day is a chance to learn something amazing!</p>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 transform hover:scale-[1.02] transition-transform duration-300">
+                <div class="floating max-w-md mx-auto">
+                    <label class="block text-2xl font-semibold text-gray-700 mb-6 text-center">
+                        What sparks your curiosity today?
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="topic-input" 
+                               class="w-full px-6 py-4 text-lg border-2 border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-300"
+                               placeholder="eg: Quantum Physics, Poetry, Machine Learning...">
+                        <button onclick="submitTopic()" 
+                                class="mt-6 w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl px-8 py-4 text-lg font-semibold hover:opacity-90 transform hover:-translate-y-1 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Let's Begin This Journey! 🚀
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Learning Stats -->
+            <div class="grid grid-cols-3 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow-lg p-6 transform hover:scale-105 transition-all duration-300">
+                    <div class="text-indigo-500 text-xl font-bold">7 Days</div>
+                    <div class="text-gray-600">Learning Streak</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 transform hover:scale-105 transition-all duration-300">
+                    <div class="text-purple-500 text-xl font-bold">15</div>
+                    <div class="text-gray-600">Topics Mastered</div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg p-6 transform hover:scale-105 transition-all duration-300">
+                    <div class="text-indigo-500 text-xl font-bold">92%</div>
+                    <div class="text-gray-600">Average Score</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learning Choice Section -->
+        <div id="learning-choice" class="hidden transform transition-all duration-500">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold mb-4 gradient-text">Choose Your Learning Path</h2>
+                <p class="text-gray-600">Everyone learns differently. Pick what works best for you!</p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-8">
+                <div onclick="chooseLearning()" 
+                     class="bg-white rounded-2xl shadow-xl p-8 cursor-pointer transform hover:scale-105 transition-all duration-300 border-2 border-transparent hover:border-indigo-500">
+                    <div class="text-center">
+                        <div class="text-5xl mb-4">📚</div>
+                        <h3 class="text-xl font-bold mb-2 text-gray-800">Learn & Understand</h3>
+                        <p class="text-gray-600">Dive deep into the topic with comprehensive explanations and examples</p>
+                    </div>
+                </div>
+
+                <div onclick="chooseQuiz()" 
+                     class="bg-white rounded-2xl shadow-xl p-8 cursor-pointer transform hover:scale-105 transition-all duration-300 border-2 border-transparent hover:border-purple-500">
+                    <div class="text-center">
+                        <div class="text-5xl mb-4">🎯</div>
+                        <h3 class="text-xl font-bold mb-2 text-gray-800">Test Your Skills</h3>
+                        <p class="text-gray-600">Challenge yourself with interactive quizzes and exercises</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Learning Content Section -->
+        <div id="learning-content" class="hidden transform transition-all duration-500">
+            <div class="bg-white rounded-2xl shadow-xl p-8">
+                <div class="animate-pulse">Loading your personalized learning content...</div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function submitTopic() {
+            const topic = document.getElementById('topic-input').value;
+            if (topic.trim() === '') {
+                alert('Please enter a topic you\'d like to learn about!');
+                return;
+            }
+            
+            window.selectedTopic = topic;
+            
+            // Animate transition
+            gsap.to("#topic-question", {
+                opacity: 0,
+                y: -20,
+                duration: 0.5,
+                onComplete: () => {
+                    document.getElementById('topic-question').classList.add('hidden');
+                    document.getElementById('learning-choice').classList.remove('hidden');
+                    gsap.from("#learning-choice", {
+                        opacity: 0,
+                        y: 20,
+                        duration: 0.5
+                    });
+                }
+            });
+        }
+
+        function chooseLearning() {
+            const topic = window.selectedTopic;
+            
+            gsap.to("#learning-choice", {
+                opacity: 0,
+                y: -20,
+                duration: 0.5,
+                onComplete: () => {
+                    document.getElementById('learning-choice').classList.add('hidden');
+                    document.getElementById('learning-content').classList.remove('hidden');
+                    
+                    // Simulate API call and content loading
+                    setTimeout(() => {
+                        document.getElementById('learning-content').innerHTML = `
+                            <div class="space-y-6">
+                                <h2 class="text-3xl font-bold gradient-text">Understanding ${topic}</h2>
+                                <div class="bg-indigo-50 rounded-lg p-4 border-l-4 border-indigo-500">
+                                    <p class="text-gray-700">Let's explore the fascinating world of ${topic}...</p>
+                                </div>
+                                <!-- Add your LLM-generated content here -->
+                            </div>
+                        `;
+                    }, 1500);
+
+                    gsap.from("#learning-content", {
+                        opacity: 0,
+                        y: 20,
+                        duration: 0.5
+                    });
+                }
+            });
+        }
+
+        function chooseQuiz() {
+            gsap.to("#learning-choice", {
+                opacity: 0,
+                y: -20,
+                duration: 0.5,
+                onComplete: () => {
+                    window.location.href = 'quiz.html';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
