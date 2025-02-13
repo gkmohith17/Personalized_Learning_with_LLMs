@@ -6,19 +6,18 @@
     <title>Personalized Learning</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
-    <div class="text-center p-10 bg-white shadow-lg rounded-2xl max-w-lg">
-        <h1 class="text-3xl font-bold text-blue-600">Welcome to Personalized Learning</h1>
-        <p class="mt-4 text-gray-600">An AI-powered tool that adapts to your learning style and pace.</p>
-        <button onclick="startLearning()" class="mt-6 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-xl">
-            Get Started
-        </button>
+<body class="bg-cover bg-center h-screen flex justify-center items-center" style="background-image: url('https://coolbackgrounds.io/images/unsplash/samuel-zeller-medium-b832fe04.jpg');">
+    <div class="text-center text-white bg-black bg-opacity-50 p-6 rounded-lg">
+        <h1 class="text-4xl font-bold mb-4">Welcome to Personalized Learning</h1>
+        <p class="text-lg mb-6">A smart AI-powered tool to generate personalized learning content just for you.</p>
+        <button onclick="startApp()" class="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200">Get Started</button>
     </div>
 
     <script>
-        function startLearning() {
-            window.location.href = 'learning_page.html'; // Redirect to main learning page
+        function startApp() {
+            window.location.href = 'dashboard.html';
         }
     </script>
 </body>
+
 </html>
