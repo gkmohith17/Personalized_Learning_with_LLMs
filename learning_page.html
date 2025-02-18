@@ -138,6 +138,7 @@
         </div>
     </main>
 
+    
     <script>
         function submitTopic() {
             const topic = document.getElementById('topic-input').value;
@@ -148,7 +149,6 @@
             
             window.selectedTopic = topic;
             
-            // Animate transition
             gsap.to("#topic-question", {
                 opacity: 0,
                 y: -20,
@@ -164,40 +164,95 @@
                 }
             });
         }
-
+    
         function chooseLearning() {
-            const topic = window.selectedTopic;
-            
-            gsap.to("#learning-choice", {
-                opacity: 0,
-                y: -20,
-                duration: 0.5,
-                onComplete: () => {
-                    document.getElementById('learning-choice').classList.add('hidden');
-                    document.getElementById('learning-content').classList.remove('hidden');
-                    
-                    // Simulate API call and content loading
-                    setTimeout(() => {
-                        document.getElementById('learning-content').innerHTML = `
-                            <div class="space-y-6">
-                                <h2 class="text-3xl font-bold gradient-text">Understanding ${topic}</h2>
-                                <div class="bg-indigo-50 rounded-lg p-4 border-l-4 border-indigo-500">
-                                    <p class="text-gray-700">Let's explore the fascinating world of ${topic}...</p>
-                                </div>
-                                <!-- Add your LLM-generated content here -->
-                            </div>
-                        `;
-                    }, 1500);
+    const topic = window.selectedTopic;
+    
+    // Show loading state
+    gsap.to("#learning-choice", {
+        opacity: 0,
+        y: -20,
+        duration: 0.5,
+        onComplete: () => {
+            document.getElementById('learning-choice').classList.add('hidden');
+            document.getElementById('learning-content').classList.remove('hidden');
+            document.getElementById('learning-content').innerHTML = `
+                <div class="animate-pulse space-y-6">
+                    <div class="h-8 bg-indigo-100 rounded w-3/4"></div>
+                    <div class="space-y-3">
+                        <div class="h-4 bg-indigo-50 rounded w-full"></div>
+                        <div class="h-4 bg-indigo-50 rounded w-5/6"></div>
+                        <div class="h-4 bg-indigo-50 rounded w-4/6"></div>
+                    </div>
+                </div>
+            `;
 
-                    gsap.from("#learning-content", {
-                        opacity: 0,
-                        y: 20,
-                        duration: 0.5
-                    }); 
+            const backendUrl = 'http://localhost:3000';
+            console.log('Making request for topic:', topic); // Debug log
+
+            // Make API call
+            fetch(`${backendUrl}/learning_page`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    topic: topic,
+                    learning_style: "comprehensive"
+                })
+            })
+            .then(async response => {
+                console.log('Response status:', response.status); // Debug log
+                
+                // Try to get the error message from the response
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || `HTTP error! status: ${response.status}`);
                 }
-            });
-        }
+                
+                return data;
+            })
+            .then(data => {
+                console.log('Received data:', data); // Debug log
+                
+                // Format and display the content
+                document.getElementById('learning-content').innerHTML = `
+                    <div class="space-y-6">
+                        <h2 class="text-3xl font-bold gradient-text">Understanding ${topic}</h2>
+                        <div class="bg-indigo-50 rounded-lg p-6 border-l-4 border-indigo-500 space-y-4">
+                            <p class="text-gray-700 leading-relaxed">${data.summary}</p>
+                        </div>
+                    </div>
+                `;
 
+                gsap.from("#learning-content", {
+                    opacity: 0,
+                    y: 20,
+                    duration: 0.5
+                });
+            })
+            .catch(error => {
+    console.error('Detailed error:', error); // Debug log
+    
+    document.getElementById('learning-content').innerHTML = `
+        <div class="bg-red-50 rounded-lg p-6 border-l-4 border-red-500">
+            <div class="flex items-center space-x-3">
+                <svg class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p class="text-red-700">Error: Unable to generate content. Please try again later.</p>
+            </div>
+            <button onclick="chooseLearning()" class="mt-4 text-red-600 hover:text-red-800 font-medium">
+                Try Again
+            </button>
+        </div>
+    `;
+});
+
+        }
+    });
+}
         function chooseQuiz() {
             gsap.to("#learning-choice", {
                 opacity: 0,
