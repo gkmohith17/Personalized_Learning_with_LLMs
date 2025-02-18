@@ -1,9 +1,24 @@
 import express from 'express';
 import cors from 'cors';
-import Replicate from 'replicate';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Configure dotenv
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const port = process.env.PORT || 3000;
+
+// Log all environment variables (for debugging)
+console.log('Environment variables:', {
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'Present' : 'Missing',
+    NODE_ENV: process.env.NODE_ENV,
+    PORT: process.env.PORT
+});
 
 // CORS configuration
 app.use(cors({
@@ -14,19 +29,20 @@ app.use(cors({
 
 app.use(express.json());
 
-// Initialize Replicate client with Mistral AI API key
-const replicate = new Replicate({
-    auth: process.env.REPLICATE_API_TOKEN,
-});
+// Initialize Gemini API
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Test endpoint
 app.get('/test', (req, res) => {
-    res.json({ message: 'Server is working' });
+    res.json({ 
+        message: 'Server is working',
+        apiKeyStatus: process.env.GEMINI_API_KEY ? 'Present' : 'Missing'
+    });
 });
 
 app.post('/learning_page', async (req, res) => {
     try {
-        console.log('Received request:', req.body); // Log incoming request
+        console.log('Received request:', req.body);
 
         const { topic, learning_style } = req.body;
         
@@ -37,32 +53,36 @@ app.post('/learning_page', async (req, res) => {
         }
 
         // Check API key
-        const replicateApiKey = process.env.REPLICATE_API_TOKEN;
-        if (!replicateApiKey) {
-            console.log('Missing Replicate API key');
-            return res.status(500).json({ error: 'Replicate API key not configured' });
+        if (!process.env.GEMINI_API_KEY) {
+            console.log('Missing Gemini API key');
+            return res.status(500).json({ error: 'Gemini API key not configured' });
         }
 
         // Construct prompt
+        // In your server.js, update the prompt in the /learning_page endpoint:
         const prompt = `Generate a comprehensive and engaging explanation about ${topic}. 
-                       The explanation should be detailed, clear, and suitable for a ${learning_style || 'comprehensive'} learning style.
-                       Include key concepts, examples, and practical applications where relevant.`;
+        Please structure your response with:
+        - A brief introduction paragraph
+        - Key concepts as bullet points
+        - Examples and applications as separate bullet points
+        - A conclusion paragraph
 
-        console.log('Sending request to Mistral AI API...'); // Log API request
+        Make sure to use:
+        • Bullet points for lists
+        • Clear paragraph breaks between sections
+        • Concise, clear language
 
-        // Make request to Mistral AI
-        const input = {
-            prompt: prompt,
-            max_new_tokens: 500, // Adjust as needed
-            temperature: 0.7,
-            top_p: 0.9
-        };
+        The explanation should be detailed, clear, and suitable for a ${learning_style || 'comprehensive'} learning style.`;
 
-        // Stream the response from Mistral AI
-        let summary = '';
-        for await (const event of replicate.stream("mistralai/mistral-7b-v0.1", { input })) {
-            summary += event;
-        }
+        console.log('Sending request to Gemini API...');
+
+        // Get the generative model
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+        // Generate content
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const summary = response.text();
 
         console.log('Generated summary:', summary);
 
@@ -82,5 +102,8 @@ app.post('/learning_page', async (req, res) => {
 // Start server
 app.listen(port, () => {
     console.log(`Server listening on port ${port}`);
-    console.log('REPLICATE_API_TOKEN present:', !!process.env.REPLICATE_API_TOKEN);
+    console.log('GEMINI_API_KEY present:', !!process.env.GEMINI_API_KEY);
+    if (!process.env.GEMINI_API_KEY) {
+        console.log('WARNING: GEMINI_API_KEY is not set. Please check your .env file.');
+    }
 });

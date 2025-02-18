@@ -136,6 +136,31 @@
                 <div class="animate-pulse">Loading your personalized learning content...</div>
             </div>
         </div>
+
+<div class="flex justify-center mt-8">
+    <button 
+        onclick="window.location.href='quiz.html'"
+        class="group relative inline-flex items-center justify-center px-8 py-4 text-lg font-bold text-white transition-all duration-300 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl hover:opacity-90 hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+    >
+        <span class="inline-flex items-center">
+            Test Your Knowledge
+            <svg 
+                class="w-5 h-5 ml-2 transform group-hover:translate-x-1 transition-transform duration-300" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24" 
+            >
+                <path 
+                    stroke-linecap="round" 
+                    stroke-linejoin="round" 
+                    stroke-width="2" 
+                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                />
+            </svg>
+        </span>
+    </button>
+</div>
+
     </main>
 
     
@@ -165,10 +190,39 @@
             });
         }
     
-        function chooseLearning() {
+        function formatContent(text) {
+    // Split text into paragraphs
+    const paragraphs = text.split('\n\n');
+    
+    // Process each paragraph
+    const formattedParagraphs = paragraphs.map(para => {
+        // Check if paragraph contains bullet points
+        if (para.includes('•') || para.includes('-') || para.match(/^\d+\./m)) {
+            // Split into points
+            const points = para
+                .split(/(?:\r?\n|\r)/)
+                .filter(point => point.trim())
+                .map(point => point.trim().replace(/^[•\-]\s*/, '').replace(/^\d+\.\s*/, ''));
+                
+            return `
+                <ul class="list-disc list-inside space-y-2 ml-4">
+                    ${points.map(point => `
+                        <li class="text-gray-700">${point}</li>
+                    `).join('')}
+                </ul>
+            `;
+        } else {
+            // Regular paragraph
+            return `<p class="text-gray-700 leading-relaxed mb-4">${para}</p>`;
+        }
+    });
+
+    return formattedParagraphs.join('\n');
+}
+
+function chooseLearning() {
     const topic = window.selectedTopic;
     
-    // Show loading state
     gsap.to("#learning-choice", {
         opacity: 0,
         y: -20,
@@ -187,11 +241,7 @@
                 </div>
             `;
 
-            const backendUrl = 'http://localhost:3000';
-            console.log('Making request for topic:', topic); // Debug log
-
-            // Make API call
-            fetch(`${backendUrl}/learning_page`, {
+            fetch('http://localhost:3000/learning_page', {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json'
@@ -202,26 +252,18 @@
                 })
             })
             .then(async response => {
-                console.log('Response status:', response.status); // Debug log
-                
-                // Try to get the error message from the response
-                const data = await response.json();
-                
                 if (!response.ok) {
-                    throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
                 }
-                
-                return data;
+                return response.json();
             })
             .then(data => {
-                console.log('Received data:', data); // Debug log
-                
-                // Format and display the content
                 document.getElementById('learning-content').innerHTML = `
-                    <div class="space-y-6">
-                        <h2 class="text-3xl font-bold gradient-text">Understanding ${topic}</h2>
-                        <div class="bg-indigo-50 rounded-lg p-6 border-l-4 border-indigo-500 space-y-4">
-                            <p class="text-gray-700 leading-relaxed">${data.summary}</p>
+                    <div class="space-y-6 bg-white rounded-2xl shadow-xl p-8">
+                        <h2 class="text-3xl font-bold gradient-text mb-6">Understanding ${topic}</h2>
+                        <div class="prose max-w-none">
+                            ${formatContent(data.summary)}
                         </div>
                     </div>
                 `;
@@ -233,23 +275,21 @@
                 });
             })
             .catch(error => {
-    console.error('Detailed error:', error); // Debug log
-    
-    document.getElementById('learning-content').innerHTML = `
-        <div class="bg-red-50 rounded-lg p-6 border-l-4 border-red-500">
-            <div class="flex items-center space-x-3">
-                <svg class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p class="text-red-700">Error: Unable to generate content. Please try again later.</p>
-            </div>
-            <button onclick="chooseLearning()" class="mt-4 text-red-600 hover:text-red-800 font-medium">
-                Try Again
-            </button>
-        </div>
-    `;
-});
-
+                console.error('Error:', error);
+                document.getElementById('learning-content').innerHTML = `
+                    <div class="bg-red-50 rounded-lg p-6 border-l-4 border-red-500">
+                        <div class="flex items-center space-x-3">
+                            <svg class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p class="text-red-700">Error: Unable to connect to the server. Please make sure the server is running.</p>
+                        </div>
+                        <button onclick="chooseLearning()" class="mt-4 text-red-600 hover:text-red-800 font-medium">
+                            Try Again
+                        </button>
+                    </div>
+                `;
+            });
         }
     });
 }
@@ -263,6 +303,8 @@
                 }
             });
         }
+
+        
     </script>
 </body>
 </html>
