@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Learning - LearnFlow</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.7.1/gsap.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .blob {
+            animation: blob 7s infinite;
+        }
+        @keyframes blob {
+            0% { border-radius: 60% 40% 30% 70%/60% 30% 70% 40%; }
+            50% { border-radius: 30% 60% 70% 40%/50% 60% 30% 60%; }
+            100% { border-radius: 60% 40% 30% 70%/60% 30% 70% 40%; }
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .celebration {
+            animation: celebrate 1s ease-out;
+        }
+        @keyframes celebrate {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .floating {
+            animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+            100% { transform: translateY(0px); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen overflow-x-hidden">
+    <!-- Background Elements -->
+    <div class="fixed inset-0 -z-10 overflow-hidden">
+        <div class="blob absolute top-20 left-20 w-72 h-72 bg-purple-200 opacity-20 transform rotate-45"></div>
+        <div class="blob absolute bottom-20 right-20 w-96 h-96 bg-indigo-200 opacity-20 transform -rotate-12"></div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl font-bold gradient-text">LearnFlow</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="bg-indigo-100 rounded-full px-4 py-2">
+                        <span class="text-indigo-600 font-medium">Question <span id="question-counter">1</span>/5</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Split View Container -->
+        <div class="flex min-h-[70vh] relative">
+            <!-- Question Section -->
+            <div id="question-section" class="w-full transition-all duration-500 ease-in-out">
+                <div class="max-w-2xl mx-auto">
+                    <div class="bg-white rounded-2xl shadow-xl p-8 transform hover:shadow-2xl transition-all duration-300">
+                        <h2 class="text-2xl font-bold gradient-text mb-6">Advanced Question</h2>
+                        <div id="question-content" class="space-y-6">
+                            <p class="text-gray-800 text-lg">What are the types of Oats?</p>
+                            <div class="space-y-4">
+                                <input type="text" id="answer-input" 
+                                       class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all duration-300"
+                                       placeholder="Enter your answer...">
+                                <button onclick="submitAnswer()" 
+                                        class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl px-6 py-3 font-semibold hover:opacity-90 transform hover:-translate-y-1 transition-all duration-300">
+                                    Submit Answer
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback Section (Initially Hidden) -->
+            <div id="feedback-section" class="hidden w-full">
+                <div class="max-w-2xl mx-auto">
+                    <div class="bg-white rounded-2xl shadow-xl p-8">
+                        <div id="feedback-content" class="space-y-4">
+                            <!-- Feedback will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Completion Modal (Initially Hidden) -->
+        <div id="completion-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div class="bg-white rounded-2xl shadow-xl p-8 max-w-xl w-full mx-4 transform celebration">
+                <div class="text-center space-y-6">
+                    <div class="text-6xl mb-4">🎉</div>
+                    <h2 class="text-3xl font-bold gradient-text">Congratulations!</h2>
+                    <div class="space-y-4">
+                        <p class="text-gray-700 text-lg">You've mastered this advanced topic with flying colors!</p>
+                        <div class="floating">
+                            <div class="bg-indigo-100 rounded-lg p-4">
+                                <p class="text-indigo-800 font-medium">Your dedication to learning is truly inspiring!</p>
+                            </div>
+                        </div>
+                        <div class="pt-6">
+                            <button onclick="window.location.href='learning_page.html'" 
+                                    class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl px-8 py-4 font-semibold hover:opacity-90 transform hover:-translate-y-1 transition-all duration-300">
+                                Continue Your Learning Journey
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let currentQuestion = 1;
+        
+        function submitAnswer() {
+            const answer = document.getElementById('answer-input').value;
+            if (!answer) {
+                alert('Please enter an answer');
+                return;
+            }
+
+            // Animate question to the left
+            gsap.to('#question-section', {
+                x: '-50%',
+                opacity: 0.5,
+                scale: 0.9,
+                duration: 0.5
+            });
+
+            // Show feedback section
+            const feedbackSection = document.getElementById('feedback-section');
+            feedbackSection.classList.remove('hidden');
+            
+            // Simulate LLM response (replace with actual API call)
+            const isCorrect = Math.random() > 0.5; // Random for demo
+            const feedback = isCorrect ? 
+                `<div class="space-y-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="text-green-500 text-2xl">✓</div>
+                        <h3 class="text-xl font-semibold text-green-600">Correct!</h3>
+                    </div>
+                    <p class="text-gray-700">Excellent work! Your answer demonstrates a strong understanding of the concept.</p>
+                </div>` :
+                `<div class="space-y-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="text-red-500 text-2xl">×</div>
+                        <h3 class="text-xl font-semibold text-red-600">Not quite right</h3>
+                    </div>
+                    <p class="text-gray-700">The correct answer would be x². Here's why: When integrating 2x, we increase the power by 1 and divide by the new power.</p>
+                </div>`;
+
+            document.getElementById('feedback-content').innerHTML = feedback;
+            
+            gsap.from(feedbackSection, {
+                x: '100%',
+                opacity: 0,
+                duration: 0.5
+            });
+
+            // Move to next question or show completion
+            setTimeout(() => {
+                if (currentQuestion < 5) {
+                    currentQuestion++;
+                    document.getElementById('question-counter').textContent = currentQuestion;
+                    resetQuestion();
+                } else {
+                    showCompletion();
+                }
+            }, 3000);
+        }
+
+        function resetQuestion() {
+            // Reset question position
+            gsap.to('#question-section', {
+                x: '0%',
+                opacity: 1,
+                scale: 1,
+                duration: 0.5
+            });
+
+            // Hide feedback
+            document.getElementById('feedback-section').classList.add('hidden');
+            
+            // Clear input
+            document.getElementById('answer-input').value = '';
+        }
+
+        function showCompletion() {
+            const modal = document.getElementById('completion-modal');
+            modal.classList.remove('hidden');
+            
+            // Animate celebration elements
+            gsap.from('#completion-modal .celebration', {
+                scale: 0,
+                opacity: 0,
+                duration: 0.8,
+                ease: "back.out(1.7)"
+            });
+        }
+    </script>
+</body>
+</html>
