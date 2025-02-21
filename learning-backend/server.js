@@ -99,6 +99,113 @@ app.post('/learning_page', async (req, res) => {
     }
 });
 
+// Updated /generate-quiz endpoint with better response handling
+
+app.post('/generate-quiz', async (req, res) => {
+    try {
+        const { topic } = req.body;
+
+        if (!topic) {
+            return res.status(400).json({ error: 'Topic is required' });
+        }
+
+        // Updated prompt to ensure cleaner JSON response
+        const prompt = `Generate 10 multiple choice questions about ${topic}.
+        Respond ONLY with a JSON array containing the questions. No additional text, no markdown formatting, no backticks.
+        Each question should be an object with exactly these fields:
+        - question (string)
+        - options (array of 4 strings)
+        - correct (number 0-3)
+        - explanation (string)
+        
+        Example format:
+        [
+          {
+            "question": "What is...",
+            "options": ["answer1", "answer2", "answer3", "answer4"],
+            "correct": 0,
+            "explanation": "This is correct because..."
+          }
+        ]`;
+
+        // Get the generative model
+        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+        // Generate content
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        let responseText = response.text();
+
+        // Clean up the response text
+        // Remove any markdown formatting or additional text
+        responseText = responseText.replace(/```json\n?/g, '')
+                                 .replace(/```\n?/g, '')
+                                 .trim();
+
+        let quizData;
+        try {
+            // Parse the cleaned response text
+            quizData = JSON.parse(responseText);
+            
+            // Validate the response structure
+            if (!Array.isArray(quizData)) {
+                throw new Error('Response is not an array');
+            }
+
+            if (quizData.length !== 10) {
+                console.warn(`Expected 10 questions, got ${quizData.length}`);
+                // If we got less than 10 questions, we'll still proceed but log a warning
+            }
+
+            // Validate each question
+            quizData = quizData.map((q, index) => {
+                // Verify required fields exist
+                if (!q.question || !Array.isArray(q.options) || 
+                    !q.options.length || typeof q.correct !== 'number' ||
+                    !q.explanation) {
+                    throw new Error(`Invalid question structure at index ${index}`);
+                }
+
+                // Ensure options array has exactly 4 items
+                if (q.options.length !== 4) {
+                    throw new Error(`Question ${index} must have exactly 4 options`);
+                }
+
+                // Ensure correct answer index is valid (0-3)
+                if (q.correct < 0 || q.correct > 3) {
+                    throw new Error(`Invalid correct answer index at question ${index}`);
+                }
+
+                return {
+                    question: String(q.question),
+                    options: q.options.map(String), // Ensure all options are strings
+                    correct: Number(q.correct),
+                    explanation: String(q.explanation)
+                };
+            });
+
+        } catch (parseError) {
+            console.error('Error parsing quiz data:', parseError);
+            console.error('Raw response:', responseText);
+            return res.status(500).json({ 
+                error: 'Failed to generate valid quiz questions',
+                details: parseError.message
+            });
+        }
+
+        // Return the validated quiz data
+        return res.json({ questions: quizData });
+
+    } catch (error) {
+        console.error('Server error:', error);
+        return res.status(500).json({ 
+            error: 'Internal server error',
+            message: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+    }
+});
+
 // Start server
 app.listen(port, () => {
     console.log(`Server listening on port ${port}`);

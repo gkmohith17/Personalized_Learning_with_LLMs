@@ -110,20 +110,36 @@
         let questions = [];
 
         // Simulated questions (replace with your LLM API call)
-        async function fetchQuestions() {
-            // Simulate API call
-            questions = [
-                {
-                    question: "How many calories does 100g of Oats have?",
-                    options: ["374kcal", "456kcal", "236kcal", "223kcal"],
-                    correct: 0,
-                    explanation: "100 grams of oats contain approximately *389 calories*. They are also rich in fiber, protein, and essential nutrients like iron, magnesium, and B vitamins."
-                },
-                // Add more questions here
-            ];
-            
-            displayQuestion();
+// Replace your existing fetchQuestions function with this:
+
+async function fetchQuestions() {
+    try {
+        const topic = new URLSearchParams(window.location.search).get('topic') || 'general knowledge';
+        
+        const response = await fetch('http://localhost:3000/generate-quiz', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ topic })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch questions');
         }
+
+        const data = await response.json();
+        questions = data.questions;
+        
+        // Start the quiz
+        displayQuestion();
+        
+    } catch (error) {
+        console.error('Error fetching questions:', error);
+        document.getElementById('question-text').textContent = 
+            'Error loading questions. Please try again later.';
+    }
+}
 
         function displayQuestion() {
             const questionData = questions[currentQuestion];
