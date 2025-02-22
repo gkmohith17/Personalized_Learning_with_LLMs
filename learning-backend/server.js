@@ -109,27 +109,41 @@ app.post('/generate-quiz', async (req, res) => {
             return res.status(400).json({ error: 'Topic is required' });
         }
 
-        // Updated prompt to ensure cleaner JSON response
-        const prompt = `Generate 10 multiple choice questions about ${topic}.
-        Respond ONLY with a JSON array containing the questions. No additional text, no markdown formatting, no backticks.
-        Each question should be an object with exactly these fields:
+        const prompt = `Generate 10 multiple choice questions specifically about "${topic}".
+        The questions must be directly related to ${topic} and should cover different aspects of this specific subject.
+        
+        Important requirements:
+        - Every question must explicitly relate to ${topic}
+        - Questions should vary in difficulty (easy, medium, hard)
+        - Include key facts, concepts, and principles about ${topic}
+        - Avoid generic or unrelated questions
+        
+        Respond ONLY with a JSON array containing the questions. No additional text or formatting.
+        Each question must have these exact fields:
         - question (string)
         - options (array of 4 strings)
         - correct (number 0-3)
-        - explanation (string)
+        - explanation (string explaining why the correct answer is right)
         
-        Example format:
+        Example format for ${topic}:
         [
           {
-            "question": "What is...",
-            "options": ["answer1", "answer2", "answer3", "answer4"],
+            "question": "${topic}-specific question here...",
+            "options": ["${topic}-related answer 1", "${topic}-related answer 2", "${topic}-related answer 3", "${topic}-related answer 4"],
             "correct": 0,
-            "explanation": "This is correct because..."
+            "explanation": "This is correct because... (with ${topic}-specific explanation)"
           }
         ]`;
 
         // Get the generative model
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-pro",
+            generationConfig: {
+                temperature: 0.7, // Add some creativity while keeping responses focused
+                topK: 40,
+                topP: 0.8,
+            }
+        });
 
         // Generate content
         const result = await model.generateContent(prompt);
@@ -137,7 +151,6 @@ app.post('/generate-quiz', async (req, res) => {
         let responseText = response.text();
 
         // Clean up the response text
-        // Remove any markdown formatting or additional text
         responseText = responseText.replace(/```json\n?/g, '')
                                  .replace(/```\n?/g, '')
                                  .trim();
@@ -147,19 +160,18 @@ app.post('/generate-quiz', async (req, res) => {
             // Parse the cleaned response text
             quizData = JSON.parse(responseText);
             
-            // Validate the response structure
+            // Enhanced validation
             if (!Array.isArray(quizData)) {
                 throw new Error('Response is not an array');
             }
 
             if (quizData.length !== 10) {
-                console.warn(`Expected 10 questions, got ${quizData.length}`);
-                // If we got less than 10 questions, we'll still proceed but log a warning
+                throw new Error(`Expected 10 questions, got ${quizData.length}`);
             }
 
-            // Validate each question
+            // Validate each question with topic relevance check
             quizData = quizData.map((q, index) => {
-                // Verify required fields exist
+                // Basic structure validation
                 if (!q.question || !Array.isArray(q.options) || 
                     !q.options.length || typeof q.correct !== 'number' ||
                     !q.explanation) {
@@ -176,9 +188,17 @@ app.post('/generate-quiz', async (req, res) => {
                     throw new Error(`Invalid correct answer index at question ${index}`);
                 }
 
+                // Check if the question or options mention the topic
+                const contentStr = `${q.question} ${q.options.join(' ')} ${q.explanation}`.toLowerCase();
+                const topicLower = topic.toLowerCase();
+                
+                if (!contentStr.includes(topicLower)) {
+                    console.warn(`Warning: Question ${index} may not be relevant to ${topic}`);
+                }
+
                 return {
                     question: String(q.question),
-                    options: q.options.map(String), // Ensure all options are strings
+                    options: q.options.map(String),
                     correct: Number(q.correct),
                     explanation: String(q.explanation)
                 };
@@ -189,12 +209,17 @@ app.post('/generate-quiz', async (req, res) => {
             console.error('Raw response:', responseText);
             return res.status(500).json({ 
                 error: 'Failed to generate valid quiz questions',
-                details: parseError.message
+                details: parseError.message,
+                rawResponse: process.env.NODE_ENV === 'development' ? responseText : undefined
             });
         }
 
         // Return the validated quiz data
-        return res.json({ questions: quizData });
+        return res.json({ 
+            topic,
+            questionCount: quizData.length,
+            questions: quizData 
+        });
 
     } catch (error) {
         console.error('Server error:', error);
