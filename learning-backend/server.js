@@ -99,6 +99,138 @@ app.post('/learning_page', async (req, res) => {
     }
 });
 
+// Updated /generate-quiz endpoint with better response handling
+
+app.post('/generate-quiz', async (req, res) => {
+    try {
+        const { topic } = req.body;
+
+        if (!topic) {
+            return res.status(400).json({ error: 'Topic is required' });
+        }
+
+        const prompt = `Generate 10 multiple choice questions specifically about "${topic}".
+        The questions must be directly related to ${topic} and should cover different aspects of this specific subject.
+        
+        Important requirements:
+        - Every question must explicitly relate to ${topic}
+        - Questions should vary in difficulty (easy, medium, hard)
+        - Include key facts, concepts, and principles about ${topic}
+        - Avoid generic or unrelated questions
+        
+        Respond ONLY with a JSON array containing the questions. No additional text or formatting.
+        Each question must have these exact fields:
+        - question (string)
+        - options (array of 4 strings)
+        - correct (number 0-3)
+        - explanation (string explaining why the correct answer is right)
+        
+        Example format for ${topic}:
+        [
+          {
+            "question": "${topic}-specific question here...",
+            "options": ["${topic}-related answer 1", "${topic}-related answer 2", "${topic}-related answer 3", "${topic}-related answer 4"],
+            "correct": 0,
+            "explanation": "This is correct because... (with ${topic}-specific explanation)"
+          }
+        ]`;
+
+        // Get the generative model
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-pro",
+            generationConfig: {
+                temperature: 0.7, // Add some creativity while keeping responses focused
+                topK: 40,
+                topP: 0.8,
+            }
+        });
+
+        // Generate content
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        let responseText = response.text();
+
+        // Clean up the response text
+        responseText = responseText.replace(/```json\n?/g, '')
+                                 .replace(/```\n?/g, '')
+                                 .trim();
+
+        let quizData;
+        try {
+            // Parse the cleaned response text
+            quizData = JSON.parse(responseText);
+            
+            // Enhanced validation
+            if (!Array.isArray(quizData)) {
+                throw new Error('Response is not an array');
+            }
+
+            if (quizData.length !== 10) {
+                throw new Error(`Expected 10 questions, got ${quizData.length}`);
+            }
+
+            // Validate each question with topic relevance check
+            quizData = quizData.map((q, index) => {
+                // Basic structure validation
+                if (!q.question || !Array.isArray(q.options) || 
+                    !q.options.length || typeof q.correct !== 'number' ||
+                    !q.explanation) {
+                    throw new Error(`Invalid question structure at index ${index}`);
+                }
+
+                // Ensure options array has exactly 4 items
+                if (q.options.length !== 4) {
+                    throw new Error(`Question ${index} must have exactly 4 options`);
+                }
+
+                // Ensure correct answer index is valid (0-3)
+                if (q.correct < 0 || q.correct > 3) {
+                    throw new Error(`Invalid correct answer index at question ${index}`);
+                }
+
+                // Check if the question or options mention the topic
+                const contentStr = `${q.question} ${q.options.join(' ')} ${q.explanation}`.toLowerCase();
+                const topicLower = topic.toLowerCase();
+                
+                if (!contentStr.includes(topicLower)) {
+                    console.warn(`Warning: Question ${index} may not be relevant to ${topic}`);
+                }
+
+                return {
+                    question: String(q.question),
+                    options: q.options.map(String),
+                    correct: Number(q.correct),
+                    explanation: String(q.explanation)
+                };
+            });
+
+        } catch (parseError) {
+            console.error('Error parsing quiz data:', parseError);
+            console.error('Raw response:', responseText);
+            return res.status(500).json({ 
+                error: 'Failed to generate valid quiz questions',
+                details: parseError.message,
+                rawResponse: process.env.NODE_ENV === 'development' ? responseText : undefined
+            });
+        }
+
+        // Return the validated quiz data
+        return res.json({ 
+            topic,
+            questionCount: quizData.length,
+            questions: quizData 
+        });
+
+    } catch (error) {
+        console.error('Server error:', error);
+        return res.status(500).json({ 
+            error: 'Internal server error',
+            message: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+    }
+});
+
 // Start server
 app.listen(port, () => {
     console.log(`Server listening on port ${port}`);
